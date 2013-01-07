@@ -15,8 +15,9 @@
 #include "pluginpref.h"
 #include "prefs.h"
 
-static void init_plugin (PurplePlugin *plugin);
-static gboolean load_plugin (PurplePlugin *plugin);
+static void plugin_init (PurplePlugin *plugin);
+static gboolean plugin_load (PurplePlugin *plugin);
+static PurplePluginPrefFrame *plugin_pref_frame (PurplePlugin *plugin);
 static void im_filter (PurpleAccount *account,
                        const char *receiver,
                        char **message,
@@ -27,6 +28,17 @@ static void chat_filter (PurpleAccount *account,
                          gpointer data);
 static gboolean is_message_bad (char *message);
 static void write_error (PurpleConversation *conv);
+
+static PurplePluginUiInfo prefs_info = {
+	plugin_pref_frame,
+	0,
+	NULL,
+
+	NULL,
+	NULL,
+	NULL,
+	NULL
+};
 
 static PurplePluginInfo info = {
 	PURPLE_PLUGIN_MAGIC,
@@ -49,13 +61,13 @@ message for sensitive information and warn you before it gets sent.",
 	"Thomas Hebb <tommyhebb@gmail.com>",
 	"http://placeholder.site/",
 
-	load_plugin,
+	plugin_load,
 	NULL,
 	NULL,
 
 	NULL,
 	NULL,
-	NULL,
+	&prefs_info,
 	NULL,
 
 	NULL,
@@ -64,17 +76,30 @@ message for sensitive information and warn you before it gets sent.",
 	NULL
 };
 
-PURPLE_INIT_PLUGIN(passguard, init_plugin, info);
+PURPLE_INIT_PLUGIN(passguard, plugin_init, info);
 
-static void init_plugin (PurplePlugin *plugin) {
-
+static void plugin_init (PurplePlugin *plugin) {
+	purple_prefs_add_none("/plugins/core/passguard");
+	purple_prefs_add_string("/plugins/core/passguard/bad", "");
 }
 
-static gboolean load_plugin (PurplePlugin *plugin) {
+static gboolean plugin_load (PurplePlugin *plugin) {
 	purple_signal_connect(purple_conversations_get_handle(), "sending-im-msg", plugin, PURPLE_CALLBACK(im_filter), NULL);
 	purple_signal_connect(purple_conversations_get_handle(), "sending-chat-msg", plugin, PURPLE_CALLBACK(chat_filter), NULL);
 
 	return TRUE;
+}
+
+static PurplePluginPrefFrame *plugin_pref_frame (PurplePlugin *plugin) {
+	PurplePluginPrefFrame *frame = purple_plugin_pref_frame_new();
+	PurplePluginPref *pref;
+
+	pref = purple_plugin_pref_new_with_name_and_label(
+			"/plugins/core/passguard/bad",
+			"String to block");
+	purple_plugin_pref_frame_add(frame, pref);
+
+	return frame;
 }
 
 static void im_filter (PurpleAccount *account,
@@ -109,7 +134,10 @@ static void chat_filter (PurpleAccount *account,
 }
 
 static gboolean is_message_bad (char *message) {
-	return strstr(message, "asdf") != NULL;
+	const char *bad_string = purple_prefs_get_string(
+			"/plugins/core/passguard/bad");
+
+	return strstr(message, bad_string) != NULL;
 }
 
 static void write_error (PurpleConversation *conv) {
