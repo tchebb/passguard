@@ -1,5 +1,5 @@
 /* passguard.c
- * libpurple plugin to prevent accidental transmission of sensitive information.
+ * A libpurple plugin to prevent accidental transmission of sensitive information.
  */
 
 #include <glib.h>
@@ -59,7 +59,7 @@ realize a second too late that your chat client was focused and 1,296 people \
 could now access your account? Worry no more, for Pass Guard will check your \
 message for sensitive information and warn you before it gets sent.",
 	"Thomas Hebb <tommyhebb@gmail.com>",
-	"http://placeholder.site/",
+	"https://github.com/tchebb/passguard",
 
 	plugin_load,
 	NULL,
